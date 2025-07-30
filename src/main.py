@@ -75,7 +75,8 @@ def get_records_by_type(record_type):
             if host.attrib["Type"] == record_type:
                 record = {
                     "name": host.attrib["Name"],
-                    "value": host.attrib["Address"]
+                    "value": host.attrib["Address"],
+                    "type": host.attrib["Type"]
                 }
                 found_records.append(record)
         if found_records is None:
