@@ -1,5 +1,7 @@
 import argparse
+import json
 import os
+import redis
 import requests
 import structlog
 import sys
@@ -38,6 +40,17 @@ VALID_RECORD_TYPES = [
 ]
 
 
+def validate_environment():
+    if API_USER is None or API_KEY is None or CLIENT_IP is None:
+        log.critical(
+            "Confirm the .env file has been populated.",
+            API_USER=API_USER,
+            API_KEY=API_KEY,
+            CLIENT_IP=CLIENT_IP
+        )
+        sys.exit(1)
+
+
 def get_records_by_type(record_type):
     if record_type not in VALID_RECORD_TYPES:
         log.critical("Invalid record type to search")
@@ -70,11 +83,14 @@ def get_records_by_type(record_type):
         else:
             for record in found_records:
                 log.info("Found record", record=record)
-            return found_records
     else:
         log.warn(f"Failed to retrieve DNS records: {response.status_code} - {response.text}")
 
-    return None
+    record_dict = {
+        "records": []
+    }
+    record_dict["records"].append(found_records)
+    return record_dict
 
 
 def get_all_records():
@@ -105,18 +121,38 @@ def get_all_records():
         else:
             for record in found_records:
                 log.info("Found record", record=record)
-            return found_records
     else:
         log.warn(f"Failed to retrieve DNS records: {response.status_code} - {response.text}")
 
-    return None
+    record_dict = {
+        "records": []
+    }
+    record_dict["records"].append(found_records)
+    return record_dict
+
+
+def send_to_redis(record_dict):
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=4)
+    json_string = json.dumps(record_dict)
+    try:
+        r.set("dns_update", json_string)
+    except Exception as e:
+        log.critical("Unable to send record to redis", exception=e)
+        sys.exit(1)
+    log.info("Sent records to Redis")
 
 
 def run():
+    validate_environment()
+
     if args.record_type:
-        get_records_by_type(args.record_type)
+        records = get_records_by_type(args.record_type)
     else:
-        get_all_records()
+        records = get_all_records()
+
+    if args.use_redis:
+        send_to_redis(records)
+
     log.info("Execution complete")
 
 
