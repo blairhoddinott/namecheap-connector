@@ -133,14 +133,32 @@ def get_all_records():
 
 
 def send_to_redis(record_dict):
+    if record_dict["records"][0]:
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=4)
+        json_string = json.dumps(record_dict)
+        try:
+            r.set("dns_update", json_string)
+        except Exception as e:
+            log.critical("Unable to send record to redis", exception=e)
+            sys.exit(1)
+        log.info("Sent records to Redis")
+
+
+def check_validation_status():
     r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=4)
-    json_string = json.dumps(record_dict)
     try:
-        r.set("dns_update", json_string)
+        record = r.get("dns_update")
     except Exception as e:
         log.critical("Unable to send record to redis", exception=e)
         sys.exit(1)
-    log.info("Sent records to Redis")
+
+    if record:
+        dns_records = get_records_by_type("TXT")
+        if not dns_records["records"][0]:
+            log.info("record still in redis, validation has completed")
+            r.set("validation_complete", 1)
+    else:
+        log.debug("validation has completed and been cleaned. nothing to do here")
 
 
 def run():
@@ -153,6 +171,8 @@ def run():
 
     if args.use_redis:
         send_to_redis(records)
+
+    check_validation_status()
 
     log.info("Execution complete")
 
