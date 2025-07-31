@@ -1,15 +1,18 @@
 import argparse
+import logging
 import os
 import structlog
 import sys
+import time
 
 from dotenv import load_dotenv
 from namecheap import Namecheap
 from structlog import get_logger
 
+
 structlog.configure(
     processors=[
-        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.TimeStamper(fmt="iso", utc=False),
         structlog.processors.add_log_level,
         structlog.dev.ConsoleRenderer(),
     ]
@@ -39,17 +42,11 @@ def run():
     validate_environment()
     namecheap = Namecheap(API_USER, API_KEY, CLIENT_IP, REDIS_HOST, REDIS_PORT, args.domain)
 
-    if args.record_type:
-        records = namecheap.get_records_by_type(args.record_type)
-    else:
-        records = namecheap.get_all_records()
-
-    if args.use_redis:
+    while True:
+        records = namecheap.get_records_by_type("TXT")
         namecheap.send_to_redis(records)
-
-    # namecheap.check_validation_status()
-
-    log.info("Execution complete")
+        namecheap.check_validation_status()
+        time.sleep(60)
 
 
 if __name__ == "__main__":
@@ -64,20 +61,16 @@ if __name__ == "__main__":
         help="The domain you wish to query within Namecheap"
     )
     parser.add_argument(
-        "-r",
-        "--use_redis",
+        "-v",
+        "--debug",
         action="store_true",
-        help="If you wish to store the results of a query in Redis, use this flag. "
-             "Redis info is populated from the .env file"
+        help="Enables debug logging"
     )
-    parser.add_argument(
-        "-t",
-        "--record_type",
-        action="store",
-        help="Type of record to query the zone for. "
-             "If this is not set, all record types will be returned"
-    )
-
     args = parser.parse_args()
+    if args.debug:
+        structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),)
+    else:
+        structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),)
+
     log.info(f"Querying Namecheap for {args.domain}")
     run()
