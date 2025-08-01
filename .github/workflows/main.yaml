@@ -2,7 +2,7 @@ name: Build website
 on: [push]
 jobs:
   Build-Docker:
-    runs-on: technitium-connector-runner
+    runs-on: namecheap-connector-runner
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
