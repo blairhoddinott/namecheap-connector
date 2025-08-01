@@ -26,3 +26,22 @@ Right now, this does the following:
 - Query for all records in a domain
 
 I may add functionality to add records, depending on what kind of gong show dealing with the stupid XML is. 
+
+### Docker
+
+I have created a Docker implementation. This make deploying this easier. 
+
+I have attached a docker-compose.yaml file. The environment variables must be set prior to launching. You will need the following information:
+
+- DOMAIN
+This is the top level domain you are looking for in namecheap (e.g. weepynet.com). This is the domain name you are looking to generate LetsEncrypt certs for
+- API_USER
+This is your namecheap username
+- API_KEY
+This is your namecheap API key
+- CLIENT_IP
+This is your IP address that you have whitelisted in the Namecheap API section
+- REDIS_HOST
+This is the address for the Redis host you are using as part of this implementation
+
+Once this has been filled out, you should be able to just `docker compose up -d` the file. You can check the logs with `docker logs namecheap-connector` to make sure there are no errors.

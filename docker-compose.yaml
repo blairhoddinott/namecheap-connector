@@ -1,0 +1,12 @@
+---
+services:
+  namecheap-connector:
+    image: weepyadmin/namecheap-connector:latest
+    container_name: namecheap-connector
+    environment:
+      - DOMAIN=DOMAIN.COM
+      - API_USER=NAMECHEAP_USERNAME
+      - API_KEY=NAMECHEAP_API_KEY
+      - CLIENT_IP=WHITELISTED_IP
+      - REDIS_HOST=REDIS_SERVER
+    restart: always
