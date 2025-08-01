@@ -1,0 +1,15 @@
+[Unit]
+Description=Namecheap DNS Connector
+After=network.target
+
+[Service]
+User=blair
+Group=sudo
+WorkingDirectory=/opt/namecheap-connector
+ExecStart=/opt/namecheap-connector/.venv/bin/python /opt/namecheap-connector/src/service.py -d weepynet.com
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
