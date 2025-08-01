@@ -46,7 +46,7 @@ def run():
         records = namecheap.get_records_by_type("TXT")
         namecheap.send_to_redis(records)
         namecheap.check_validation_status()
-        time.sleep(60)
+        time.sleep(300)
 
 
 if __name__ == "__main__":
